@@ -435,21 +435,76 @@ with tab1:
 with tab2:
     st.markdown('<p class="sub-header">Tableau de jaugeage (Calibration Table)</p>', unsafe_allow_html=True)
     
-    if diameter and circumference:
-        # Génération du tableau
-        df_calibration = generate_calibration_table(diameter, length_cylinder, length_head, deadwood_volume)
+    try:
+        if diameter and circumference:
+            # Génération du tableau
+            df_calibration = generate_calibration_table(diameter, length_cylinder, length_head, deadwood_volume)
+            
+            # Options d'affichage
+            col_opt1, col_opt2, col_opt3 = st.columns([2, 2, 2])
+            
+            with col_opt1:
+                display_decimals = st.selectbox(
+                    "Précision d'affichage",
+                    options=[2, 3, 4, 5, 6],
+                    value=3,
+                    help="Nombre de décimales à afficher"
+                )
         
-        # Affichage du tableau
+        with col_opt2:
+            show_net = st.checkbox(
+                "Afficher volumes nets",
+                value=False,
+                help="Inclure les volumes nets (après déduction deadwood)"
+            )
+        
+        with col_opt3:
+            rows_to_show = st.selectbox(
+                "Nombre de lignes",
+                options=[10, 20, 50, 100, "Tout"],
+                value=20,
+                help="Nombre de lignes à afficher"
+            )
+        
+        # Préparation de l'affichage
+        df_display = df_calibration.copy()
+        
+        if not show_net:
+            df_display = df_display[['Hauteur (m)', 'Hauteur (cm)', 'Cylindre (m³)', 'Têtes (m³)', 'Total (m³)', 'Total (L)']]
+        
+        # Formatage
+        format_dict = {
+            'Hauteur (m)': f'{{:.{display_decimals}f}}',
+            'Hauteur (cm)': f'{{:.{display_decimals}f}}',
+            'Cylindre (m³)': f'{{:.{display_decimals}f}}',
+            'Têtes (m³)': f'{{:.{display_decimals}f}}',
+            'Total (m³)': f'{{:.{display_decimals}f}}',
+            'Total (L)': f'{{:.{max(0, display_decimals-1)}f}}',
+            'Net (m³)': f'{{:.{display_decimals}f}}',
+            'Net (L)': f'{{:.{max(0, display_decimals-1)}f}}',
+        }
+        
+        df_display_formatted = df_display.copy()
+        for col in df_display_formatted.columns:
+            if col in format_dict:
+                df_display_formatted[col] = df_display_formatted[col].apply(format_dict[col].format)
+        
+        # Limiter le nombre de lignes
+        if rows_to_show != "Tout":
+            df_display_formatted = df_display_formatted.head(rows_to_show)
+        
         st.markdown("""
-        <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 1rem;">
-            <b>✅ Tableau généré selon ISO 12917-1:2017</b>
+        <div class="success-box">
+            <b>✅ Tableau généré selon ISO 12917-1:2017</b><br>
+            Calibration réalisée par méthode manuelle externe
         </div>
         """, unsafe_allow_html=True)
         
-        st.dataframe(df_calibration.head(50), use_container_width=True)
+        # Affichage du tableau
+        st.dataframe(df_display_formatted, use_container_width=True)
         
         # Téléchargements
-        col_dl1, col_dl2 = st.columns(2)
+        col_dl1, col_dl2, col_dl3 = st.columns(3)
         
         with col_dl1:
             csv_data = df_calibration.to_csv(index=False)
@@ -457,40 +512,69 @@ with tab2:
                 label="📥 Télécharger CSV",
                 data=csv_data,
                 file_name=f"calibration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
+                mime="text/csv",
+                help="Télécharger le tableau en format CSV"
             )
         
         with col_dl2:
+            excel_buffer = export_to_excel(df_calibration)
+            st.download_button(
+                label="📥 Télécharger Excel",
+                data=excel_buffer,
+                file_name=f"calibration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                help="Télécharger le tableau en format Excel"
+            )
+        
+        with col_dl3:
+            # Générer PDF texte
+            pdf_text = "Tableau de Jaugeage ISO 12917-1:2017\n"
+            pdf_text += "=" * 80 + "\n\n"
+            pdf_text += df_calibration.to_string()
+            
             st.download_button(
                 label="📥 Télécharger TXT",
-                data=df_calibration.to_string(),
+                data=pdf_text,
                 file_name=f"calibration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                mime="text/plain"
+                mime="text/plain",
+                help="Télécharger le tableau en format texte"
             )
         
         # Statistiques
         st.divider()
-        st.markdown("### 📊 Statistiques")
+        st.markdown("### 📊 Statistiques du réservoir")
         
         stat_col1, stat_col2, stat_col3, stat_col4 = st.columns(4)
         
         with stat_col1:
-            st.metric("Capacité totale", f"{df_calibration['Total (L)'].max():,.0f} L")
+            st.metric(
+                "Capacité totale",
+                f"{df_calibration['Total (L)'].max():,.0f} L",
+                delta=f"{df_calibration['Total (m³)'].max():.2f} m³"
+            )
         
         with stat_col2:
-            h_val = 1.0
-            matching = df_calibration[abs(df_calibration['Hauteur (m)'] - h_val) < 0.01]
-            val = matching['Total (L)'].values[0] if len(matching) > 0 else 0
-            st.metric(f"À h={h_val}m", f"{val:,.0f} L")
+            st.metric(
+                "À h = 1.5m",
+                f"{df_calibration[abs(df_calibration['Hauteur (m)'] - 1.5) < 0.01]['Total (L)'].values[0] if len(df_calibration[abs(df_calibration['Hauteur (m)'] - 1.5) < 0.01]) > 0 else 'N/A':.0f} L"
+            )
         
         with stat_col3:
-            st.metric("À 50% capacité", f"{df_calibration['Total (L)'].max() * 0.5:,.0f} L")
+            st.metric(
+                "À 50% capacité",
+                f"{df_calibration['Total (L)'].max() * 0.5:,.0f} L"
+            )
         
         with stat_col4:
-            st.metric("À 75% capacité", f"{df_calibration['Total (L)'].max() * 0.75:,.0f} L")
+            st.metric(
+                "À 75% capacité",
+                f"{df_calibration['Total (L)'].max() * 0.75:,.0f} L"
+            )
     
-    else:
-        st.warning("⚠️ Veuillez d'abord configurer les paramètres du réservoir dans l'onglet 'Paramètres'")
+        else:
+            st.warning("⚠️ Veuillez d'abord configurer les paramètres du réservoir dans l'onglet 'Paramètres'")
+    except Exception as e:
+        st.error(f"❌ Erreur : {str(e)}")
 
 # ============================================================================
 # TAB 3: COURBE DE CALIBRATION

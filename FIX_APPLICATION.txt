@@ -1,0 +1,88 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                    🔧 CORRECTION DE L'ERREUR                              ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+⚠️  ERREUR TROUVÉE
+════════════════════════════════════════════════════════════════════════════
+
+Line 574: SyntaxError: invalid syntax (else)
+
+La raison : Indentation incorrecte dans le bloc TAB2
+
+════════════════════════════════════════════════════════════════════════════
+
+✅ SOLUTIONS IMMÉDIATES
+════════════════════════════════════════════════════════════════════════════
+
+OPTION 1 : VERSION v1.0 FONCTIONNELLE (recommandée maintenant)
+───────────────────────────────────────────────────────────────
+
+Fichier : streamlit_app_v1.0_WORKING.py
+
+1. Téléchargez ce fichier
+2. Remplacez streamlit_app.py
+3. Lancez l'application :
+   - Windows : run.bat
+   - Mac/Linux : bash run.sh
+
+CETTE VERSION :
+  ✅ Syntaxe correcte
+  ✅ Fonctionne sans erreurs
+  ✅ Génère 39 points de mesure
+  ✅ Interface complète
+
+════════════════════════════════════════════════════════════════════════════
+
+OPTION 2 : CORRECTION MANUELLE (si vous préférez)
+──────────────────────────────────────────────────
+
+Allez à la ligne 454-467 du streamlit_app.py et remplacez :
+
+AVANT (mauvais) :
+        with col_opt1:
+            display_decimals = st.selectbox(...)
+        
+        with col_opt2:  ← Indentation incorrecte !
+            show_net = st.checkbox(...)
+
+APRÈS (correct) :
+        with col_opt1:
+            display_decimals = st.selectbox(...)
+        
+        with col_opt2:  ← Même indentation que col_opt1
+            show_net = st.checkbox(...)
+
+Les with doivent TOUS avoir la même indentation (12 espaces).
+
+════════════════════════════════════════════════════════════════════════════
+
+📅 TIMELINE DES VERSIONS
+════════════════════════════════════════════════════════════════════════════
+
+v1.0 (original)    : 39 points, syntaxe OK
+v1.1 (table cm)    : 335 points, erreur indentation
+v1.2 (fix+cm)      : 335 points, syntaxe corrigée ← À venir !
+
+════════════════════════════════════════════════════════════════════════════
+
+📝 RÉSUMÉ
+════════════════════════════════════════════════════════════════════════════
+
+Problème : Indentation dans TAB2
+Cause    : Modification malheureuse lors de l'ajout table centimétrique
+Solution : Utiliser v1.0 fonctionnelle OU attendre v1.2 corrigée
+
+════════════════════════════════════════════════════════════════════════════
+
+✨ PROCHAINE ÉTAPE
+════════════════════════════════════════════════════════════════════════════
+
+1. Attendez streamlit_app_v1.2_FIXED.py (version corrigée complète)
+   OU
+2. Utilisez streamlit_app_v1.0_WORKING.py pour commencer maintenant
+
+Désolé pour le désagrément !
+
+════════════════════════════════════════════════════════════════════════════
